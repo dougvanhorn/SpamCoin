@@ -1,0 +1,32 @@
+[flake8]
+
+max-line-length = 100
+
+
+# Ignore Migrations folders.
+exclude = 
+    # Default cruft
+    .svn,
+    CVS,
+    .bzr,
+    .hg,
+    .git,
+    __pycache__,
+    .tox,
+    .eggs,
+    *.egg,
+
+    # Django Migrations (generated code)
+    migrations/
+
+
+# Ignore Warnings
+# http://flake8.pycqa.org/en/latest/user/error-codes.html
+# http://pep8.readthedocs.io/en/release-1.7.x/intro.html#error-codes
+ignore = 
+    # W391 blank line at end of file
+    W391,
+
+    # E265 block comment should start with '# '
+    # Commented out Code has no space.  Text comments do.
+    E265,
