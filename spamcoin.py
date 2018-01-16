@@ -9,10 +9,12 @@ Links:
 
 import datetime
 import hashlib
+import time
 
 import click
 
 
+# Global log level, modulate via command line argument.
 VERBOSE = False
 
 
@@ -40,7 +42,7 @@ class Block:
         self.hash = self.hash_block()
 
     def __str__(self):
-        return '#{}: {}'.format(self.height, self.hash)
+        return '{}'.format(self.hash)
 
     def hash_block(self):
         """Build the sha256 string for the block.
@@ -66,7 +68,7 @@ def create_genesis_block():
     Returns:
         A Block instance.
     """
-    return Block(0, datetime.datetime.now(), 'Let there be coin.', '0')
+    return Block(0, datetime.datetime.now(), 'Let there be coin.', '0', nonce=0)
 
 
 def mine_next_block(last_block, difficulty=None):
@@ -75,6 +77,9 @@ def mine_next_block(last_block, difficulty=None):
     Arguments:
         last_block: the last block in the chain to point to
         difficulty: [int] the difficulty, number of zeros the hash much start with
+
+    Returns:
+        A new Block to be appended to the chain.
     """
     height = last_block.height + 1
     timestamp = datetime.datetime.now()
@@ -86,6 +91,9 @@ def mine_next_block(last_block, difficulty=None):
     if not difficulty:
         return block
 
+    # This is a simple difficulty check, where the new hash must begin with the specified number of
+    # zeros.  Bitcoin requires the zeros plus the hash must be less than the previous block's hash
+    # number.
     while not block.hash.startswith('0'*difficulty):  # noqa: E226
         rounds += 1
         block = Block(height, timestamp, data, last_block.hash, nonce=rounds)
@@ -95,21 +103,31 @@ def mine_next_block(last_block, difficulty=None):
     return block
 
 
-def demo(block_count=20, difficulty=None):
+def demo(height=20, difficulty=None):
     """Start a blockchain.
 
     Arguments:
-        block_count: the number of blocks to generate
+        height: [20] the number of blocks to generate
+        difficulty: [None] the number of 0s required at the beginning of the hash
     """
     genesis_block = create_genesis_block()
     chain = [genesis_block]
 
-    for i in range(block_count):
+    start = time.time()
+    for i in range(height - 1):  # Genesis block counts as one.
         new_block = mine_next_block(chain[-1], difficulty=difficulty)
         chain.append(new_block)
 
         out('A Block has been added to the blockchain.')
-        out(str(new_block))
+        out('%s: %s rounds' % (str(new_block), new_block.nonce))
+
+    end = time.time()
+
+    avg_rounds = sum(block.nonce for block in chain) / len(chain)
+
+    out('Created a blockchain with a height of %s.' % len(chain))
+    out('Execution time: %ss' % str(round((end - start), 2)))
+    out('Average number of rounds: %s' % str(round(avg_rounds)))
 
 
 def out(s):
@@ -122,12 +140,13 @@ def verbose(s):
 
 
 @click.command()
+@click.option('--height', default=20, help='Number of blocks in the chain.', type=int)
 @click.option('--difficulty', default=None, help='Hashing difficulty.', type=int)
 @click.option('--verbose', '-v', is_flag=True, default=False, help='Be verbose about it.')
-def cli(difficulty, verbose):
+def cli(height, difficulty, verbose):
     global VERBOSE
     VERBOSE = verbose
-    demo(difficulty=difficulty)
+    demo(height=height, difficulty=difficulty)
 
 
 if __name__ == '__main__':
